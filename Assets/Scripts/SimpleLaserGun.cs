@@ -52,6 +52,24 @@ public class SimpleLaserGun : MonoBehaviour
         if (Physics.Raycast(laserStartPoint.position, laserStartPoint.forward, out hit, laserMaxDistance))
         {
             laserLine.SetPosition(1, hit.point);
+
+            Target target = hit.collider.GetComponent<Target>();
+            if (target != null)
+            {
+                target.OnHit();
+            }
+
+            BalloonTarget balloon = hit.collider.GetComponent<BalloonTarget>();
+            if (balloon != null)
+            {
+                balloon.OnHit();
+            }
+
+            UIButtonTarget uiButton = hit.collider.GetComponent<UIButtonTarget>();
+            if (uiButton != null)
+            {
+                uiButton.OnHit();
+            }
         }
         else
         {
