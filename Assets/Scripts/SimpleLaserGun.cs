@@ -13,6 +13,13 @@ public class SimpleLaserGun : MonoBehaviour
     [SerializeField] private Color laserColor = Color.red;
     [SerializeField] private float laserWidth = 0.02f;
 
+    [Header("Audio Settings")]
+    [SerializeField] private AudioClip shootSound;
+    [SerializeField] private float shootVolume = 0.5f;
+
+    private AudioSource audioSource;
+    private bool wasShooting = false;
+
     private void Start()
     {
         if (laserLine != null)
@@ -24,19 +31,41 @@ public class SimpleLaserGun : MonoBehaviour
             laserLine.endColor = laserColor;
             laserLine.enabled = false;
         }
+
+        audioSource = GetComponent<AudioSource>();
+        if (audioSource == null)
+        {
+            audioSource = gameObject.AddComponent<AudioSource>();
+        }
+        audioSource.playOnAwake = false;
     }
 
     private void Update()
     {
         float triggerValue = triggerAction.action.ReadValue<float>();
+        bool isShooting = triggerValue > 0.5f;
 
-        if (triggerValue > 0.5f)
+        if (isShooting)
         {
+            if (!wasShooting)
+            {
+                PlayShootSound();
+            }
             ShowLaser();
         }
         else
         {
             HideLaser();
+        }
+
+        wasShooting = isShooting;
+    }
+
+    private void PlayShootSound()
+    {
+        if (shootSound != null && audioSource != null)
+        {
+            audioSource.PlayOneShot(shootSound, shootVolume);
         }
     }
 
