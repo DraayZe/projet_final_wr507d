@@ -1,4 +1,5 @@
 using UnityEngine;
+using System.Collections;
 
 public class BalloonTarget : MonoBehaviour
 {
@@ -7,6 +8,10 @@ public class BalloonTarget : MonoBehaviour
     [SerializeField] private AudioClip popSound;
     [SerializeField] private float popEffectDuration = 1f;
 
+    [Header("Inflate Before Pop")]
+    [SerializeField] private float inflateScale = 1.3f;
+    [SerializeField] private float inflateDuration = 0.15f;
+
     [Header("Movement Settings")]
     [SerializeField] private bool isMoving = false;
     [SerializeField] private float moveSpeed = 1f;
@@ -14,6 +19,7 @@ public class BalloonTarget : MonoBehaviour
     [SerializeField] private MovementType movementType = MovementType.UpDown;
 
     private Vector3 startPosition;
+    private Vector3 originalScale;
     private float moveTimer = 0f;
     private bool canBeHit = true;
     private TargetSpawner spawner;
@@ -29,6 +35,7 @@ public class BalloonTarget : MonoBehaviour
     private void Start()
     {
         startPosition = transform.position;
+        originalScale = transform.localScale;
     }
 
     private void Update()
@@ -46,6 +53,11 @@ public class BalloonTarget : MonoBehaviour
         startPosition = transform.position;
         canBeHit = true;
         moveTimer = Random.Range(0f, 100f);
+
+        if (originalScale == Vector3.zero)
+        {
+            originalScale = transform.localScale;
+        }
     }
 
     public void OnHit()
@@ -53,10 +65,28 @@ public class BalloonTarget : MonoBehaviour
         if (!canBeHit) return;
 
         canBeHit = false;
+        isMoving = false;
 
         if (GameManager.Instance != null)
         {
             GameManager.Instance.AddPoint();
+        }
+
+        StartCoroutine(InflateAndPop());
+    }
+
+    private IEnumerator InflateAndPop()
+    {
+        Vector3 targetScale = originalScale * inflateScale;
+        float elapsed = 0f;
+
+        while (elapsed < inflateDuration)
+        {
+            elapsed += Time.deltaTime;
+            float t = elapsed / inflateDuration;
+            float easedT = 1f - Mathf.Pow(1f - t, 3f);
+            transform.localScale = Vector3.Lerp(originalScale, targetScale, easedT);
+            yield return null;
         }
 
         if (popSound != null)
@@ -74,6 +104,8 @@ public class BalloonTarget : MonoBehaviour
         {
             spawner.OnTargetHit(this);
         }
+
+        transform.localScale = originalScale;
 
         Debug.Log("Ballon éclaté ! +1 point");
     }
@@ -112,5 +144,6 @@ public class BalloonTarget : MonoBehaviour
     {
         canBeHit = true;
         moveTimer = Random.Range(0f, 100f);
+        transform.localScale = originalScale;
     }
 }
