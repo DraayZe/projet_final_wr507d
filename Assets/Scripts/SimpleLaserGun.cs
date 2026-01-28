@@ -1,5 +1,6 @@
 using UnityEngine;
 using UnityEngine.InputSystem;
+using TMPro;
 
 public class SimpleLaserGun : MonoBehaviour
 {
@@ -17,6 +18,10 @@ public class SimpleLaserGun : MonoBehaviour
     [SerializeField] private AudioClip shootSound;
     [SerializeField] private AudioClip reloadSound;
     [SerializeField] private float shootVolume = 0.5f;
+    [SerializeField] private float reloadVolume = 1f;
+
+    [Header("UI")]
+    [SerializeField] private TextMeshProUGUI ammoText;
 
     [Header("Cooldown Settings")]
     [SerializeField] private float shootCooldown = 0.5f;
@@ -53,6 +58,22 @@ public class SimpleLaserGun : MonoBehaviour
         audioSource.playOnAwake = false;
 
         currentAmmo = maxAmmo;
+        UpdateAmmoUI();
+    }
+
+    private void UpdateAmmoUI()
+    {
+        if (ammoText != null)
+        {
+            if (isReloading)
+            {
+                ammoText.text = "Rechargement...";
+            }
+            else
+            {
+                ammoText.text = $"{currentAmmo} / {maxAmmo}";
+            }
+        }
     }
 
     private void Update()
@@ -64,6 +85,7 @@ public class SimpleLaserGun : MonoBehaviour
                 isReloading = false;
                 currentAmmo = maxAmmo;
                 canShoot = true;
+                UpdateAmmoUI();
             }
             HideLaser();
             return;
@@ -88,6 +110,7 @@ public class SimpleLaserGun : MonoBehaviour
                 lastShootTime = Time.time;
                 canShoot = false;
                 currentAmmo--;
+                UpdateAmmoUI();
 
                 if (currentAmmo <= 0)
                 {
@@ -110,9 +133,10 @@ public class SimpleLaserGun : MonoBehaviour
 
         if (reloadSound != null && audioSource != null)
         {
-            audioSource.PlayOneShot(reloadSound, shootVolume);
+            audioSource.PlayOneShot(reloadSound, reloadVolume);
         }
 
+        UpdateAmmoUI();
         Debug.Log("Rechargement en cours...");
     }
 
