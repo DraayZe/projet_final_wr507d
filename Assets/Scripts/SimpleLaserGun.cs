@@ -15,10 +15,23 @@ public class SimpleLaserGun : MonoBehaviour
 
     [Header("Audio Settings")]
     [SerializeField] private AudioClip shootSound;
+    [SerializeField] private AudioClip reloadSound;
     [SerializeField] private float shootVolume = 0.5f;
+
+    [Header("Cooldown Settings")]
+    [SerializeField] private float shootCooldown = 0.5f;
+
+    [Header("Ammo Settings")]
+    [SerializeField] private int maxAmmo = 10;
+    [SerializeField] private float reloadDuration = 4f;
 
     private AudioSource audioSource;
     private bool wasShooting = false;
+    private float lastShootTime = 0f;
+    private bool canShoot = true;
+    private int currentAmmo;
+    private bool isReloading = false;
+    private float reloadEndTime = 0f;
 
     private void Start()
     {
@@ -38,20 +51,49 @@ public class SimpleLaserGun : MonoBehaviour
             audioSource = gameObject.AddComponent<AudioSource>();
         }
         audioSource.playOnAwake = false;
+
+        currentAmmo = maxAmmo;
     }
 
     private void Update()
     {
+        if (isReloading)
+        {
+            if (Time.time >= reloadEndTime)
+            {
+                isReloading = false;
+                currentAmmo = maxAmmo;
+                canShoot = true;
+            }
+            HideLaser();
+            return;
+        }
+
+        if (!canShoot && Time.time >= lastShootTime + shootCooldown)
+        {
+            canShoot = true;
+        }
+
         float triggerValue = triggerAction.action.ReadValue<float>();
         bool isShooting = triggerValue > 0.5f;
 
         if (isShooting)
         {
-            if (!wasShooting)
+            bool canFire = canShoot && !wasShooting && currentAmmo > 0;
+            ShowLaser(canFire);
+
+            if (canFire)
             {
                 PlayShootSound();
+                lastShootTime = Time.time;
+                canShoot = false;
+                currentAmmo--;
+
+                if (currentAmmo <= 0)
+                {
+                    StartReload();
+                }
             }
-            ShowLaser();
         }
         else
         {
@@ -59,6 +101,19 @@ public class SimpleLaserGun : MonoBehaviour
         }
 
         wasShooting = isShooting;
+    }
+
+    private void StartReload()
+    {
+        isReloading = true;
+        reloadEndTime = Time.time + reloadDuration;
+
+        if (reloadSound != null && audioSource != null)
+        {
+            audioSource.PlayOneShot(reloadSound, shootVolume);
+        }
+
+        Debug.Log("Rechargement en cours...");
     }
 
     private void PlayShootSound()
@@ -69,7 +124,7 @@ public class SimpleLaserGun : MonoBehaviour
         }
     }
 
-    private void ShowLaser()
+    private void ShowLaser(bool canHitTargets = true)
     {
         if (laserLine == null || laserStartPoint == null) return;
 
@@ -82,22 +137,25 @@ public class SimpleLaserGun : MonoBehaviour
         {
             laserLine.SetPosition(1, hit.point);
 
-            Target target = hit.collider.GetComponent<Target>();
-            if (target != null)
+            if (canHitTargets)
             {
-                target.OnHit();
-            }
+                Target target = hit.collider.GetComponent<Target>();
+                if (target != null)
+                {
+                    target.OnHit();
+                }
 
-            BalloonTarget balloon = hit.collider.GetComponent<BalloonTarget>();
-            if (balloon != null)
-            {
-                balloon.OnHit();
-            }
+                BalloonTarget balloon = hit.collider.GetComponent<BalloonTarget>();
+                if (balloon != null)
+                {
+                    balloon.OnHit();
+                }
 
-            UIButtonTarget uiButton = hit.collider.GetComponent<UIButtonTarget>();
-            if (uiButton != null)
-            {
-                uiButton.OnHit();
+                UIButtonTarget uiButton = hit.collider.GetComponent<UIButtonTarget>();
+                if (uiButton != null)
+                {
+                    uiButton.OnHit();
+                }
             }
         }
         else
