@@ -1,6 +1,7 @@
 using UnityEngine;
 using UnityEngine.InputSystem;
 using TMPro;
+using System.Collections;
 
 public class SimpleLaserGun : MonoBehaviour
 {
@@ -11,8 +12,18 @@ public class SimpleLaserGun : MonoBehaviour
     [SerializeField] private LineRenderer laserLine;
     [SerializeField] private Transform laserStartPoint;
     [SerializeField] private float laserMaxDistance = 50f;
-    [SerializeField] private Color laserColor = Color.red;
     [SerializeField] private float laserWidth = 0.02f;
+
+    [Header("Laser Colors")]
+    [SerializeField] private Color laserColorFull = Color.green;
+    [SerializeField] private Color laserColorMid = Color.yellow;
+    [SerializeField] private Color laserColorLow = Color.red;
+    [SerializeField] private int lowAmmoThreshold = 3;
+
+    [Header("Recoil Settings")]
+    [SerializeField] private float recoilDistance = 0.05f;
+    [SerializeField] private float recoilDuration = 0.1f;
+    [SerializeField] private Transform gunModel;
 
     [Header("Audio Settings")]
     [SerializeField] private AudioClip shootSound;
@@ -37,6 +48,8 @@ public class SimpleLaserGun : MonoBehaviour
     private int currentAmmo;
     private bool isReloading = false;
     private float reloadEndTime = 0f;
+    private Vector3 gunOriginalLocalPos;
+    private bool isRecoiling = false;
 
     private void Start()
     {
@@ -45,8 +58,6 @@ public class SimpleLaserGun : MonoBehaviour
             laserLine.startWidth = laserWidth;
             laserLine.endWidth = laserWidth;
             laserLine.material = new Material(Shader.Find("Sprites/Default"));
-            laserLine.startColor = laserColor;
-            laserLine.endColor = laserColor;
             laserLine.enabled = false;
         }
 
@@ -57,8 +68,14 @@ public class SimpleLaserGun : MonoBehaviour
         }
         audioSource.playOnAwake = false;
 
+        if (gunModel != null)
+        {
+            gunOriginalLocalPos = gunModel.localPosition;
+        }
+
         currentAmmo = maxAmmo;
         UpdateAmmoUI();
+        UpdateLaserColor();
     }
 
     private void UpdateAmmoUI()
@@ -76,6 +93,67 @@ public class SimpleLaserGun : MonoBehaviour
         }
     }
 
+    private void UpdateLaserColor()
+    {
+        if (laserLine == null) return;
+
+        Color currentColor;
+
+        if (currentAmmo <= lowAmmoThreshold)
+        {
+            currentColor = laserColorLow;
+        }
+        else if (currentAmmo <= maxAmmo / 2)
+        {
+            currentColor = laserColorMid;
+        }
+        else
+        {
+            currentColor = laserColorFull;
+        }
+
+        laserLine.startColor = currentColor;
+        laserLine.endColor = currentColor;
+    }
+
+    private void ApplyRecoil()
+    {
+        if (gunModel != null && !isRecoiling)
+        {
+            StartCoroutine(RecoilCoroutine());
+        }
+    }
+
+    private IEnumerator RecoilCoroutine()
+    {
+        isRecoiling = true;
+
+        Vector3 recoilPos = gunOriginalLocalPos - Vector3.forward * recoilDistance;
+        float elapsed = 0f;
+        float halfDuration = recoilDuration / 2f;
+
+        while (elapsed < halfDuration)
+        {
+            elapsed += Time.deltaTime;
+            float t = elapsed / halfDuration;
+            gunModel.localPosition = Vector3.Lerp(gunOriginalLocalPos, recoilPos, t);
+            yield return null;
+        }
+
+        elapsed = 0f;
+        while (elapsed < halfDuration)
+        {
+            elapsed += Time.deltaTime;
+            float t = elapsed / halfDuration;
+            float easedT = 1f - Mathf.Pow(1f - t, 2f);
+            gunModel.localPosition = Vector3.Lerp(recoilPos, gunOriginalLocalPos, easedT);
+            yield return null;
+        }
+
+        gunModel.localPosition = gunOriginalLocalPos;
+        isRecoiling = false;
+    }
+
     private void Update()
     {
         if (isReloading)
@@ -86,6 +164,7 @@ public class SimpleLaserGun : MonoBehaviour
                 currentAmmo = maxAmmo;
                 canShoot = true;
                 UpdateAmmoUI();
+                UpdateLaserColor();
             }
             HideLaser();
             return;
@@ -107,10 +186,12 @@ public class SimpleLaserGun : MonoBehaviour
             if (canFire)
             {
                 PlayShootSound();
+                ApplyRecoil();
                 lastShootTime = Time.time;
                 canShoot = false;
                 currentAmmo--;
                 UpdateAmmoUI();
+                UpdateLaserColor();
 
                 if (currentAmmo <= 0)
                 {

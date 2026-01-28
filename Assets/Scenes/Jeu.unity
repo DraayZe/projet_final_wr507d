@@ -22063,8 +22063,14 @@ MonoBehaviour:
   laserLine: {fileID: 730908240}
   laserStartPoint: {fileID: 2106202553}
   laserMaxDistance: 50
-  laserColor: {r: 0.49519405, g: 0.9811321, b: 0.9523175, a: 1}
   laserWidth: 0.02
+  laserColorFull: {r: 0, g: 1, b: 0, a: 1}
+  laserColorMid: {r: 1, g: 0.92156863, b: 0.015686275, a: 1}
+  laserColorLow: {r: 1, g: 0, b: 0, a: 1}
+  lowAmmoThreshold: 3
+  recoilDistance: 0.05
+  recoilDuration: 0.1
+  gunModel: {fileID: 1915475887}
   shootSound: {fileID: 8300000, guid: 7cad73ac3af591d4e85a4fef6dce019f, type: 3}
   reloadSound: {fileID: 8300000, guid: abc549b19c94fa441885a4a8bae10ae8, type: 3}
   shootVolume: 0.3
@@ -59045,6 +59051,12 @@ PrefabInstance:
     m_AddedGameObjects: []
     m_AddedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: 0fef6f017d9ba424ba699a7cd507b77b, type: 3}
+--- !u!4 &1915475887 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: 8977721442601442133, guid: f528363d2aaa5d748ab9fcd16b601236,
+    type: 3}
+  m_PrefabInstance: {fileID: 730908227}
+  m_PrefabAsset: {fileID: 0}
 --- !u!4 &1915475889 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: 2534113522973071010, guid: ad7e42ca515a01b4ebe6867fd132fdba,
